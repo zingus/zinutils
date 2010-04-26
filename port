@@ -1,0 +1,72 @@
+#!/usr/bin/perl
+
+use strict;
+#use Data::Dumper;
+
+
+# elicit directive
+my ($directive)=grep {!m/^-/} @ARGV;
+
+# build command line
+my @cmd=('/opt/local/bin/port',@ARGV);
+
+#apropos cmd
+@cmd=map {s/^apropos$/search/;$_} @cmd;
+
+# gvim or less
+my $portfile_dest=0;
+@cmd=map {s/^(gvim|less|more|emacs)$/file/ and $portfile_dest=$1;$_} @cmd;
+if ($portfile_dest) {
+  my $cmd="'".(join "' '",@cmd)."'";
+  my $file=`$cmd`;
+  chomp $file;
+  my $sudo='';
+  $sudo='sudo' if ! -w $file and $portfile_dest ne 'less' and $portfile_dest ne 'more';
+  @cmd=('sh','-c',"$sudo \"$portfile_dest\" \"$file\"");
+}
+
+# cd work directory
+my $chdir_workdir=0;
+@cmd=map {s/^(cd)$/work/ and $chdir_workdir=$1;$_} @cmd;
+if ($chdir_workdir) {
+  my $cmd="'".(join "' '",@cmd)."'";
+  my $wd=`$cmd`; chomp $wd;
+
+  # fallback on a pristine Terminal.app window...
+  my $scpt="tell application \"Terminal\" to do script \"cd \\\"$wd\\\"/*\"";
+
+=if 0
+  $scpt="tell application \"Terminal\" to do script \"cd \\\"$wd\\\"/*\" in frontmost window"
+    if $ENV{TERM_PROGRAM} eq 'Apple_Terminal';
+
+  # FIXME frontmost window isn't detected
+=cut
+
+  # ...or use iterm if being started from an iTerm
+  $scpt="tell application \"iTerm\" to write current session of current terminal text \"cd \\\"$wd\\\"/*\""
+    if $ENV{TERM_PROGRAM} eq 'iTerm.app';
+
+  # obviously to run applescript, osascript is in order
+  @cmd=('osascript','-e',$scpt);
+}
+
+
+# tune environment (decide for sudo and nice)
+unshift @cmd,'sudo','nice','-n20' if $directive=~m/^(
+   install
+  |uninstall 
+  |upgrade
+  |configure
+  |fetch
+  |build
+  |extract
+  |activate
+  |deactivate
+  |selfupdate
+  |clean
+  |sync
+)$/x;
+
+# print command line and run
+print STDERR join(' ',@cmd),"\n";
+exec @cmd;
