@@ -1,0 +1,12 @@
+#!/bin/sh
+
+test $# -ne 1 && echo Usage: pmsleep MINUTES_TO_WAIT && exit 1
+
+echo >/dev/stderr Sending computer to sleep in $1 minutes
+sleep $(($1*60))
+
+osascript <<EOF
+tell application "Finder"
+  sleep
+end tell
+EOF
