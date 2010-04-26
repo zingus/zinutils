@@ -1,0 +1,18 @@
+#!/usr/bin/env python
+import os
+import sys
+from shutil import move
+
+sys.stdout=sys.stderr
+for arg in sys.argv[1:]:
+  for dn,dns,fns in os.walk(arg):
+    for fn in fns:
+      path=os.path.join(dn,fn)
+      flattened=path.replace(os.path.sep,'-')
+      print "%s => %s"%(path,flattened)
+      move(path,flattened)
+    try:
+      os.rmdir(dn)
+      print "%s - is empty: deleted"%dn
+    except OSError:
+      pass
