@@ -1,1 +1,106 @@
-/Users/mdr/bin/pren
+#!/usr/bin/perl
+
+=head1 SYNOPSIS
+
+pren PERL_EXPR [FILENAMES...]
+pren -e PERL_EXPR [FILENAMES...]
+pren -r PERL_EXPR [FILENAMES...]
+
+=head1 COPYRIGHT
+
+(C)2007, Zingus J. Rinkle
+Use, modify and abuse at will, give credit.
+
+=cut
+
+$VERSION='1.5';
+
+use File::Copy;
+use Data::Dumper;
+use File::Find;
+use Getopt::Long;
+Getopt::Long::Configure ("bundling");
+
+# Define help message
+sub help {die "Usage: pren PERL_EXPR [FILENAMES...]\n";}
+
+# Handle options
+our $recursive,$invisibles,$expr;
+our $overwrite_policy='ask',$overwrite=0;
+GetOptions(
+  'recursive|r!'=>\$recursive,
+  'R' => sub {$recursive=0},
+  'I|invis' => \$invisibles,
+  'help|?|h' => \&help,
+  'expr|e=s' => \$expr,
+  'force|f'       => sub{$overwrite_policy='all'},
+  'none|n'        => sub{$overwrite_policy='none'},
+  'interactive|i' => sub{$overwrite_policy='ask'},
+);
+
+# Handle argument vector:
+# give help, obtain expression, obtain filenames
+
+help() if (!@ARGV);
+$expr=shift @ARGV if !$expr;
+@ARGV=glob('*')   if !@ARGV;
+
+# %swaps - associates ($new => $old) filename pairs
+our %swaps=();
+
+# process_filename - rewrites filename and stores it into %swaps
+sub process_filename {
+  # Handle magic dirs and invisible files
+  return if /^\.$|^\.\.$/;
+  return if !$invisibles and m#(?:^|/)\.[^/]*$# ;
+  # Evaluate renaming code, return if no renaming takes place
+  local $_=$_;
+  my $a=$_;
+  eval $expr;
+  my $b=$_;
+  return if $a eq $b;
+  # Check if target file exists or _will_ exist during actuation
+  my $target_exists=(stat $b or $swaps{$b});
+  
+  do{
+    if($target_exists) {
+      if ($overwrite_policy eq 'all') {
+        $overwrite=1;
+      }elsif ($overwrite_policy eq 'none') {
+        $overwrite=0;
+      }elsif ($overwrite_policy eq 'ask') {
+        # prompt user
+        local $_;
+        while(1){
+         warn "Cant move file:\n$a\n\nTo file:\n$b\n\nFile exists. Overwrite? [Yes|No|All|NONE]\n";
+         $_=<STDIN>;
+         last if /^(y|yes|a|all|n|no|none)$/i;
+        }
+        $overwrite=1 if /^(y|yes|a|all)$/i;
+        $overwrite_policy='all'  if (/^(a|all)$/i);
+        $overwrite_policy='none' if (/^none$/i);
+      }
+    }
+    warn "Overwriting $b\n" if ($target_exists and $overwrite);
+    # Store planned swap
+    $swaps{$b}=$a if (!$target_exists or $overwrite)
+  }while(0);
+}
+
+# actuate_swaps - swap as previously planned in %swaps
+sub actuate_swaps {
+  for my $b (keys %swaps) {
+    $a=$swaps{$b};
+    next if ($a eq $b);
+    warn "$a -> $b\n";
+    move($a,$b);
+  }
+}
+
+unless ($recursive) {
+  process_filename foreach @ARGV;
+} else {
+  my $options={wanted=>\&process_filename,no_chdir=>1};
+  find($options,@ARGV);
+}
+actuate_swaps();

@@ -1,1 +1,8 @@
-/Users/mdr/bin/ffmp3
+#!/bin/bash
+for VID; do
+  MP3="${VID%.*}.mp3"
+  echo "# Encoding $VID to $MP3"
+  ffmpeg -i "$VID" "$MP3"
+done
+#transcode{vcodec=mpeg,vb=800,acodec=mp3,ab=128,maxwidth=800,maxheight=600}
+#--sout="#transcode{acodec=mp3}:standard{access=file,mux=raw,dst=\"$MP3\"}" \

@@ -1,0 +1,7 @@
+#!/bin/sh
+for VID; do
+  SCALED="${VID%.*}-scaled.avi"
+  echo "# Encoding $VID to $SCALED"
+  exec vlc -I dummy "$VID" vlc:quit --no-video --stop-time=30 \
+    "--sout=#transcode{vcodec=mp4v,acodec=mpga,vb=800,width=800,height=448}:std{access=file,mux=avi,url=\"$SCALED\"}"
+done

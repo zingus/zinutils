@@ -1,1 +1,27 @@
-/Users/mdr/bin/mdu
+#!/usr/bin/perl
+
+sub shellescape
+{
+  return join " ",map {s/'/'\\''/g; "'$_'"} @_;
+}
+
+sub mdu(&@)
+{
+  my $callback=shift @_;
+  my $cmd='du -h '.shellescape(@_);
+  my %units=(M=>1,G=>1000,T=>1000000);
+  my $du;
+
+  open $du,"-|",$cmd;
+  while(<$du>){
+    if(m/^\s*(\d+)([MGT])\s(.*)/) {
+      local $megs=$1*$units{$2};
+      local $_=$3;
+      &$callback;
+    }
+  }
+  close $du;
+}
+      
+
+mdu {printf "%5sM\t%s\n",$megs,$_} @ARGV;

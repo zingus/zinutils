@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for n in {0,1,2,3,4,5,6,7,8,9}
+do
+  ifaddr="`ipconfig getifaddr en$n 2>/dev/null`" && echo "en$n: $ifaddr"
+done

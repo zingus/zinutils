@@ -1,1 +1,7 @@
-/Users/mdr/bin/vlcdump
+#!/bin/sh
+for VID; do
+  WAV="${VID%.*}.wav"
+  echo "# Encoding $VID to $WAV"
+  vlc -I dummy "$VID" vlc:quit --no-video \
+    "--sout=#transcode{acodec=s16l,channels=2,rate=44100}:std{access=file,mux=wav,url=\"$WAV\"}"
+done

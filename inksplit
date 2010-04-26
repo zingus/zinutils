@@ -1,0 +1,132 @@
+#!/usr/bin/env php
+<?php
+
+inksplit('amore-vince-sempre.svg',0,5);
+
+function inksplit($svgfile,$vsplit=1,$hsplit=1,$order='')
+{
+  if(!$vsplit) $vsplit=1;
+  if(!$hsplit) $hsplit=1;
+  //filename
+  $svgname=preg_replace('#\.svg$#','',$svgfile);
+  @mkdir("{$svgname}_pages");
+  $data=file_get_contents($svgfile);
+  preg_match('#<svg\b([^<>]*)>#s',$data,$m);
+  // match attributes
+  preg_match_all('#(?:(\w+):|)(\w+)="([^"]*)"#',$m[1],$M,PREG_SET_ORDER);
+  $attr=array();
+  foreach($M as $m) {
+    list(,$ns,$k,$v)=$m;
+    $attr[$k]=$v;
+  }
+  $W=$attr['width'];
+  $H=$attr['height'];
+  echo "$W $H\n";
+  $w=$W/$hsplit;
+  $h=$H/$vsplit;
+  echo "$w $h\n";
+
+  // page width / heigth
+  $data=preg_replace('#(<svg\b[^<>]*)\swidth="[^"]*"([^<>]*>)#',"\\1 width=\"$w\"\\2",$data);
+  $data=preg_replace('#(<svg\b[^<>]*)\sheight="[^"]*"([^<>]*>)#',"\\1 height=\"$h\"\\2",$data);
+
+  $i=0;
+  for($x=0;$x<$W;$x+=$w) {
+    for($y=0;$y<$H;$y+=$h) {
+      $i++;
+      echo "page$i $x:$y\n";
+      // filename
+      $svgpage="{$svgname}_pages/p$i.svg";
+      $pdfpage="{$svgname}_pages/p$i.pdf";
+      $pdata=$data;
+      $pdata=preg_replace('#(<svg\b[^<>]*>)#',"\\1<g id=\"$svgpage\" transform=\"translate(-$x,-$y)\">",$pdata);
+      $pdata=preg_replace('#(</svg\b[^<>]*>)#','</g>\1',$pdata);
+      file_put_contents($svgpage,$pdata);
+      system("inkscape -z -A '$pdfpage' -f '$svgpage' 2>/dev/null && rm '$svgpage' && echo done");
+    }
+  }
+}
+
+
+//$page=shell_exec('inkscape -z --export-png=foo.png amore-vince-sempre.svg');
+
+
+/*
+  -z, --without-gui                          Non usare il server X (processa i
+                                             file da console)
+  -f, --file=NOMEFILE                        Apre il documento specificato (le
+                                             opzioni possono essere omesse)
+  -p, --print=NOMEFILE                       Stampa il documento al file di
+                                             output specificato (usare'|
+                                             programma' per il pipe)
+  -e, --export-png=NOMEFILE                  Esporta il documento come file PNG
+  -d, --export-dpi=DPI                       La risoluzione per esportare SVG
+                                             in bitmap (predefinita 90)
+  -a, --export-area=x0:y0:x1:y1              L'area esportata in unità utente
+                                             SVG (predefinita tutta la tela;
+                                             0,0 è l'angolo inferiore
+                                             sinistro)
+  -D, --export-area-drawing                  L'area esportata è il disegno
+                                             intero (non la tela)
+  -C, --export-area-canvas                   L'area esportata è l'intera tela
+  --export-area-snap                         Aggancia l'area esterna di
+                                             esportazione bitmap al valore
+                                             intero più vicino (in unità
+                                             utente SVG)
+  -w, --export-width=LARGHEZZA               La larghezza in pixel della
+                                             bitmap esportata (precede
+                                             export-dpi)
+  -h, --export-height=ALTEZZA                L'altezza in pixel della bitmap
+                                             esportata (precede export-dpi)
+  -i, --export-id=ID                         L'ID dell'oggetto da esportare
+  -j, --export-id-only                       Esporta solo l'oggetto con
+                                             l'export-id dato, nasconde tutti
+                                             gli altri (solo con export-id)
+  -t, --export-use-hints                     Usa il nome del file e il valore
+                                             DPI salvato quando esporta (solo
+                                             con export-id)
+  -b, --export-background=COLORE             Colore di sfondo della bitmap
+                                             esportata (ogni stringa di colore
+                                             supportata da SVG)
+  -y, --export-background-opacity=VALORE     Opacità dello sfondo della
+                                             bitmap esportata (sia da 0.0 a
+                                             1.0, che da 1 a 255)
+  -l, --export-plain-svg=NOMEFILE            Esporta il documento come SVG
+                                             puro (senza i namespace di
+                                             sodipodi o di inkscape)
+  -P, --export-ps=NOMEFILE                   Esporta il documento come file PS
+  -E, --export-eps=NOMEFILE                  Esporta il documento come file EPS
+  -A, --export-pdf=NOMEFILE                  Esporta il documento come file PDF
+  -T, --export-text-to-path                  Converte i testi in tracciati
+                                             durante l'esportazione (EPS)
+  -F, --export-embed-fonts                   Includi font all'esportazione
+                                             (solo Type 1) (EPS)
+  -B, --export-bbox-page                     Esporta i file con il riquadro
+                                             impostato alla dimensione della
+                                             pagina (EPS)
+  -X, --query-x                              Richiede la coordinata X del
+                                             disegno o dell'oggetto se
+                                             specificato con --query-id
+  -Y, --query-y                              Richiede la coordinata Y del
+                                             disegno o dell'oggetto se
+                                             specificato con --query-id
+  -W, --query-width                          Richiede la larghezza del disegno
+                                             o dell'oggetto se specificato con
+                                             --query-id
+  -H, --query-height                         Richiede l'altezza del disegno o
+                                             dell'oggetto se specificato con
+                                             --query-id
+  -I, --query-id=ID                          L'ID dell'oggetto di cui si
+                                             richiedono le dimensioni
+  -x, --extension-directory                  Stampa la directory delle
+                                             estensioni e esce
+  --vacuum-defs                              Elimina definizioni superflue
+                                             dalle sezioni defs del documento
+  --verb-list                                Mostra gli ID di tutte le azioni
+                                             in Inkscape
+  --verb=VERB-ID                             Azioni da compiere all'apertura
+                                             di Inkscape.
+  --select=OBJECT-ID                         ID dell'oggetto da selezionare
+                                             all'apertura di Inkscape.
+*/
+
