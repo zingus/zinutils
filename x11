@@ -1,0 +1,3 @@
+#!/bin/bash
+open -a X11
+env DISPLAY=":0" "$@"

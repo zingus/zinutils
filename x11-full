@@ -1,0 +1,9 @@
+#!/bin/sh
+open -a X11-fullscreen
+for a; do CMD="$CMD \"$a\""; done
+export PATH="/usr/X11R6/bin:$PATH"
+export DISPLAY=":9"
+#GEOMETRY="`xwininfo -root | grep geometry | sed 's/-geometry /%/'`"
+xwininfo -root
+xsetroot -solid gray
+xterm -bg gray -e "$CMD" &

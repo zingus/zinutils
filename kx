@@ -1,0 +1,1 @@
+exec killall X11
